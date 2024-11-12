@@ -24,7 +24,7 @@ public class Program
 		// Configuração de Injeção de Dependência
 		var builder = WebApplication.CreateBuilder(args);
 
-		var connectionString = builder.Configuration.GetConnectionString("SqlServer");
+		var connectionString = builder.Configuration["SQL_SERVER_CONNECTION_STRING"];
 
 		builder.Services.AddDbContext<IContextoPersistencia, NoteKeeperDbContext>(optionsBuilder =>
 		{
