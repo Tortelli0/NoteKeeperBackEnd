@@ -1,32 +1,31 @@
 ﻿using NoteKeeper.Dominio.Compartilhado;
 using NoteKeeper.Dominio.ModuloNota;
 
-namespace NoteKeeper.Dominio.ModuloCategoria
+namespace NoteKeeper.Dominio.ModuloCategoria;
+
+public class Categoria : Entidade
 {
-    public class Categoria : Entidade
+    public string Titulo { get; set; }
+
+    public List<Nota> Notas { get; set; }
+
+    protected Categoria()
     {
-        public string Titulo { get; set; }
+        Notas = [];
+    }
 
-        public List<Nota> Notas { get; set; }
+    public Categoria(string titulo) : this()
+    {
+        Titulo = titulo;
+    }
 
-        protected Categoria()
-        {
-            Notas = [];
-        }
+    public List<string> Validar()
+    {
+        List<string> erros = [];
 
-        public Categoria(string titulo) : this()
-        {
-            Titulo = titulo;
-        }
+        if (string.IsNullOrEmpty(Titulo))
+            erros.Add("O título é obrigatório");
 
-        public override List<string> Validar()
-        {
-            List<string> erros = [];
-
-            if (string.IsNullOrEmpty(Titulo))
-                erros.Add("O título é obrigatório");
-
-            return erros;
-        }
+        return erros;
     }
 }

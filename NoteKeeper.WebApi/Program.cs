@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Aplicacao.ModuloCategoria;
 using NoteKeeper.Aplicacao.ModuloNota;
@@ -8,8 +7,11 @@ using NoteKeeper.Dominio.ModuloNota;
 using NoteKeeper.Infra.Orm.Compartilhado;
 using NoteKeeper.Infra.Orm.ModuloCategoria;
 using NoteKeeper.Infra.Orm.ModuloNota;
+using NoteKeeper.WebApi.Config;
 using NoteKeeper.WebApi.Config.Mapping;
 using NoteKeeper.WebApi.Config.Mapping.Actions;
+using NoteKeeper.WebApi.Filters;
+using Serilog;
 
 namespace NoteKeeper.WebApi;
 
@@ -17,6 +19,8 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
+		const string politicaCors = "_minhaPoliticaCors";
+
 		// Configuração de Injeção de Dependência
 		var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +28,10 @@ public class Program
 
 		builder.Services.AddDbContext<IContextoPersistencia, NoteKeeperDbContext>(optionsBuilder =>
 		{
-			optionsBuilder.UseSqlServer(connectionString);
+			optionsBuilder.UseSqlServer(connectionString, dbOptions =>
+			{
+				dbOptions.EnableRetryOnFailure();
+			});
 		});
 
 		builder.Services.AddScoped<IRepositorioCategoria, RepositorioCategoriaOrm>();
@@ -41,26 +48,58 @@ public class Program
 			config.AddProfile<NotaProfile>();
 		});
 
-		builder.Services.AddControllers();
+		builder.Services.AddCors(options =>
+		{
+			options.AddPolicy(name: politicaCors, policy =>
+			{
+				policy
+					.AllowAnyOrigin()
+					.AllowAnyHeader()
+					.AllowAnyMethod();
+			});
+		});
+
+		builder.Services.AddControllers(options =>
+		{
+			options.Filters.Add<ResponseWrapperFilter>();
+		});
+
 		builder.Services.AddEndpointsApiExplorer();
+
 		builder.Services.AddSwaggerGen();
+
+		builder.Services.ConfigureSerilog(builder.Logging);
 
 		// Middlewares de execução da API
 		var app = builder.Build();
 
-		if (app.Environment.IsDevelopment())
-		{
-			app.UseSwagger();
-			app.UseSwaggerUI();
-		}
+		app.UseGlobalExceptionHandler();
+
+		app.UseSwagger();
+		app.UseSwaggerUI();
+
+		var migracaoConcluida = app.AutoMigrateDatabase();
+
+		if (migracaoConcluida) Log.Information("Migração do banco de dados concluída");
+		else Log.Information("Nenhuma migração de banco de dados pendente");
 
 		app.UseHttpsRedirection();
 
-		app.UseAuthorization();
+		app.UseCors(politicaCors);
 
+		app.UseAuthorization();
 
 		app.MapControllers();
 
-		app.Run();
+		try
+		{
+			app.Run();
+		}
+		catch (Exception ex) 
+		{
+			Log.Fatal("Ocorreu um erro que ocasionou no fechamento da aplicação", ex);
+
+			return;
+		}
 	}
 }

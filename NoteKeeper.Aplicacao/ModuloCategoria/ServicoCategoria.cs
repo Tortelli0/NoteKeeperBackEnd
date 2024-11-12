@@ -14,10 +14,16 @@ public class ServicoCategoria
 
     public async Task<Result<Categoria>> InserirAsync(Categoria categoria)
     {
-        var resultadoValidacao = categoria.Validar();
+	    var validador = new ValidadorCategoria();
 
-        if (resultadoValidacao.Count > 0)
-            return Result.Fail(resultadoValidacao);
+	    var resultadoValidacao = await validador.ValidateAsync(categoria);
+
+        if (!resultadoValidacao.IsValid)
+        {
+	        var erros = resultadoValidacao.Errors.Select(failure => failure.ErrorMessage).ToList();
+	        
+	        return Result.Fail(erros);
+        }
 
         await _repositorioCategoria.InserirAsync(categoria);
 
@@ -26,12 +32,18 @@ public class ServicoCategoria
 
     public async Task<Result<Categoria>> EditarAsync(Categoria categoria)
     {
-        var resultadoValidacao = categoria.Validar();
+	    var validador = new ValidadorCategoria();
 
-        if (resultadoValidacao.Count > 0)
-            return Result.Fail(resultadoValidacao);
+	    var resultadoValidacao = await validador.ValidateAsync(categoria);
 
-        _repositorioCategoria.Editar(categoria);
+	    if (!resultadoValidacao.IsValid)
+	    {
+		    var erros = resultadoValidacao.Errors.Select(failure => failure.ErrorMessage).ToList();
+
+		    return Result.Fail(erros);
+	    }
+
+		_repositorioCategoria.Editar(categoria);
 
         return Result.Ok(categoria);
     }
@@ -50,6 +62,8 @@ public class ServicoCategoria
 
     public async Task<Result<List<Categoria>>> SelecionarTodosAsync()
     {
+	    throw new Exception("Houve um problema ao se conectar com o banco de dados");
+
         var categorias = await _repositorioCategoria.SelecionarTodosAsync();
 
         return Result.Ok(categorias);

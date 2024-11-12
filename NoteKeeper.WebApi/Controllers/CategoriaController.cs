@@ -3,31 +3,22 @@ using Microsoft.AspNetCore.Mvc;
 using NoteKeeper.Aplicacao.ModuloCategoria;
 using NoteKeeper.Dominio.ModuloCategoria;
 using NoteKeeper.WebApi.ViewModels;
+using Serilog;
 
 namespace NoteKeeper.WebApi.Controllers;
 
 [Route("api/categorias")]
 [ApiController]
-public class CategoriaController : ControllerBase
+public class CategoriaController(ServicoCategoria servicoCategoria, IMapper mapeador) : ControllerBase
 {
-	private readonly ServicoCategoria servicoCategoria;
-	private readonly IMapper mapeador;
-
-	public CategoriaController(ServicoCategoria servicoCategoria, IMapper mapeador)
-	{
-		this.servicoCategoria = servicoCategoria;
-		this.mapeador = mapeador;
-	}
-
 	[HttpGet]
 	public async Task<IActionResult> Get()
 	{
 		var resultado = await servicoCategoria.SelecionarTodosAsync();
 
-		if (resultado.IsFailed)
-			return StatusCode(500);
-
 		var viewModel = mapeador.Map<ListarCategoriaViewModel[]>(resultado.Value);
+
+		Log.Information("Foram selecionados {QuantidadeRegistros}", viewModel.Count());
 		
 		return Ok(viewModel);
 	}
@@ -36,9 +27,6 @@ public class CategoriaController : ControllerBase
 	public async Task<IActionResult> GetById(Guid id)
 	{
 		var categoriaResult = await servicoCategoria.SelecionarPorIdAsync(id);
-
-		if (categoriaResult.IsFailed)
-			return StatusCode(500);
 
 		if (categoriaResult.IsSuccess && categoriaResult.Value is null)
 			return NotFound(categoriaResult.Errors);
@@ -64,17 +52,11 @@ public class CategoriaController : ControllerBase
 	[HttpPut("{id}")]
 	public async Task<IActionResult> Put(Guid id,EditarCategoriaViewModel notaVm)
 	{
-		var notaResult = await servicoCategoria.SelecionarPorIdAsync(id);
+		var categoriaResult = await servicoCategoria.SelecionarPorIdAsync(id);
 
-		if (notaResult.IsFailed)
-			return StatusCode(500);
+		var categoriaEditada = mapeador.Map(notaVm, categoriaResult.Value);
 
-		if (notaResult.IsSuccess && notaResult.Value is null)
-			return NotFound(notaResult.Errors);
-
-		var notaEditada = mapeador.Map(notaVm, notaResult.Value);
-
-		var edicaoResult = await servicoCategoria.EditarAsync(notaEditada);
+		var edicaoResult = await servicoCategoria.EditarAsync(categoriaEditada);
 
 		if (edicaoResult.IsFailed)
 			return BadRequest(edicaoResult.Errors);

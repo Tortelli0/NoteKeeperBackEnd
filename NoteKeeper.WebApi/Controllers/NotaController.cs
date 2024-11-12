@@ -15,9 +15,6 @@ public class NotaController(ServicoNota servicoNota, IMapper mapeador) : Control
 	{
 		var notasResult = await servicoNota.SelecionarTodosAsync();
 
-		if (notasResult.IsFailed)
-			return StatusCode(500);
-
 		var viewModel = mapeador.Map<ListarNotaViewModel[]>(notasResult.Value);
 
 		return Ok(viewModel);
@@ -27,9 +24,6 @@ public class NotaController(ServicoNota servicoNota, IMapper mapeador) : Control
 	public async Task<IActionResult> GetById(Guid id)
 	{
 		var notaResult = await servicoNota.SelecionarPorIdAsync(id);
-
-		if (notaResult.IsFailed)
-			return StatusCode(500);
 
 		if (notaResult.IsSuccess && notaResult.Value is null)
 			return NotFound(notaResult.Errors);
@@ -67,7 +61,7 @@ public class NotaController(ServicoNota servicoNota, IMapper mapeador) : Control
 		if (edicaoResult.IsFailed)
 			return BadRequest(edicaoResult.Errors);
 
-		return Ok(edicaoResult.Value);
+		return Ok(notaVm);
 	}
 
 	[HttpDelete("{id}")]
