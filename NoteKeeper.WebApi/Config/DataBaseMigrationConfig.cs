@@ -3,7 +3,7 @@ using NoteKeeper.Infra.Orm.Compartilhado;
 
 namespace NoteKeeper.WebApi.Config;
 
-public static class DbContextExtensions
+public static class DataBaseMigrationConfig
 {
     public static bool AutoMigrateDatabase(this IApplicationBuilder app)
     {
